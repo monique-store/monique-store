@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Monique's Store</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <style>
+    body {
+      font-family: Inter, Arial;
+      background: #f7f3ea;
+      margin: 0;
+      padding: 0;
+    }
+
+    header {
+      padding: 20px;
+      text-align: center;
+      font-size: 30px;
+      font-weight: bold;
+      color: #2b2b2b;
+    }
+
+    .container {
+      display: flex;
+      gap: 20px;
+      padding: 20px;
+    }
+
+    #products {
+      flex: 3;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .product {
+      background: white;
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .product img {
+      width: 100%;
+      height: 220px;
+      object-fit: contain;
+      background: #faf7f2;
+      padding: 12px;
+    }
+
+    .product-content {
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .price {
+      font-weight: 700;
+    }
+
+    button {
+      background: #c2b59b;
+      color: white;
+      border: none;
+      padding: 11px;
+      border-radius: 12px;
+      cursor: pointer;
+    }
+
+    #cart {
+      flex: 1;
+      background: white;
+      padding: 15px;
+      border-radius: 16px;
+      position: sticky;
+      top: 20px;
+    }
+
+    .cart-item {
+      display: grid;
+      grid-template-columns: 2fr 1fr auto;
+      gap: 10px;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid #eee;
+      font-size: 14px;
+    }
+
+    .cart-item span:nth-child(2) {
+      text-align: right;
+      color: #444;
+      font-weight: 500;
+    }
+
+    .cart-remove {
+      background: transparent;
+      border: none;
+      color: #b33;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .cart-total {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 12px;
+      font-weight: bold;
+      font-size: 16px;
+      padding-top: 10px;
+      border-top: 2px solid #eee;
+    }
+
+    .badge {
+      font-size: 11px;
+      background: #e7dfcf;
+      padding: 4px 8px;
+      border-radius: 20px;
+      width: fit-content;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal-content {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      width: 300px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    input {
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+  </style>
+</head>
+
+<body>
+
+<header>Monique's Store</header>
+
+<div class="container">
+  <div id="products">Loading products...</div>
+
+  <div id="cart">
+    <h3>Cart</h3>
+    <div id="cartItems"></div>
+
+    <div class="cart-total">
+      <span>Total</span>
+      <span id="cartTotal">R0.00</span>
+    </div>
+
+    <button onclick="openCheckout()" style="margin-top:10px; width:100%;">
+      Checkout
+    </button>
+  </div>
+</div>
+
+<!-- CHECKOUT -->
+<div class="modal" id="checkoutModal">
+  <div class="modal-content">
+    <h3>Checkout</h3>
+    <input id="custName" placeholder="Your Name" />
+    <input id="custPhone" placeholder="Phone Number" />
+
+    <button onclick="placeOrder()">Place Order</button>
+    <button onclick="closeCheckout()" style="background:#999;">Cancel</button>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = "https://ayfqdhsojxitjkrfmarq.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF5ZnFkaHNvanhpdGprcmZtYXJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNzIzNjUsImV4cCI6MjA5MTg0ODM2NX0.FkoIUlzkjvjYIuZEKKjCc3JDhzdHxmTn9yPat8y0PSg";
+
+let client;
+let cart = [];
+let currentProducts = [];
+
+/* INIT */
+function initSupabase() {
+  if (!window.supabase) {
+    setTimeout(initSupabase, 100);
+    return;
+  }
+
+  client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  loadProducts();
+}
+initSupabase();
+
+/* LOAD PRODUCTS */
+async function loadProducts() {
+  const container = document.getElementById("products");
+
+  const { data, error } = await client.from("products").select("*");
+
+  if (error) {
+    container.innerHTML = "Error loading products";
+    return;
+  }
+
+  currentProducts = data;
+  container.innerHTML = "";
+
+  data.forEach(p => {
+    const div = document.createElement("div");
+
+    div.className = "product";
+    div.innerHTML = `
+      <img src="${p.image_url}" />
+      <div class="product-content">
+        <span class="badge">${p.stock > 0 ? "In Stock" : "Out of Stock"}</span>
+        <h3>${p.name}</h3>
+        <div class="price">R${p.price}</div>
+        <p>${p.description}</p>
+
+        <button onclick="addToCart('${p.id}', '${p.name}', ${p.price})"
+          ${p.stock <= 0 ? "disabled" : ""}>
+          ${p.stock > 0 ? "Add to Cart" : "Out of Stock"}
+        </button>
+      </div>
+    `;
+
+    container.appendChild(div);
+  });
+}
+
+/* ADD TO CART */
+function addToCart(id, name, price) {
+  const product = currentProducts.find(p => p.id === id);
+  if (!product || product.stock <= 0) return alert("Out of stock");
+
+  const existing = cart.find(i => i.id === id);
+
+  if (existing) {
+    if (existing.qty >= product.stock) return alert("No more stock available");
+    existing.qty++;
+  } else {
+    cart.push({ id, name, price, qty: 1 });
+  }
+
+  renderCart();
+}
+
+/* REMOVE */
+function removeFromCart(id) {
+  const index = cart.findIndex(i => i.id === id);
+  if (index === -1) return;
+
+  if (cart[index].qty > 1) cart[index].qty--;
+  else cart.splice(index, 1);
+
+  renderCart();
+}
+
+/* RENDER CART */
+function renderCart() {
+  const container = document.getElementById("cartItems");
+  let total = 0;
+
+  container.innerHTML = "";
+
+  if (cart.length === 0) {
+    document.getElementById("cartTotal").innerText = "R0.00";
+    container.innerHTML = `<p style="color:#888;">Your cart is empty</p>`;
+    return;
+  }
+
+  cart.forEach(item => {
+    const subtotal = item.price * item.qty;
+    total += subtotal;
+
+    container.innerHTML += `
+      <div class="cart-item">
+        <span>${item.name} x${item.qty}</span>
+        <span>R${subtotal.toFixed(2)}</span>
+        <button class="cart-remove" onclick="removeFromCart('${item.id}')">✕</button>
+      </div>
+    `;
+  });
+
+  document.getElementById("cartTotal").innerText = `R${total.toFixed(2)}`;
+}
+
+/* CHECKOUT */
+function openCheckout() {
+  if (cart.length === 0) return alert("Cart is empty");
+  document.getElementById("checkoutModal").style.display = "flex";
+}
+
+function closeCheckout() {
+  document.getElementById("checkoutModal").style.display = "none";
+}
+
+/* PLACE ORDER */
+async function placeOrder() {
+  const name = document.getElementById("custName").value;
+  const phone = document.getElementById("custPhone").value;
+
+  if (!name || !phone) return alert("Enter details");
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  const orderId = "INV-" + Math.floor(Math.random() * 1000000);
+  const date = new Date().toLocaleString();
+
+  let y = 20;
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(18);
+  doc.text("MONIQUE'S STORE", 20, y);
+
+  doc.setFontSize(11);
+  doc.text("INVOICE", 20, y + 8);
+
+  doc.text(`Invoice #: ${orderId}`, 140, y);
+  doc.text(`Date: ${date}`, 140, y + 6);
+
+  y += 28;
+
+  doc.text(`Customer: ${name}`, 20, y);
+  doc.text(`Phone: ${phone}`, 20, y + 6);
+
+  y += 20;
+
+  let total = 0;
+
+  cart.forEach(item => {
+    const subtotal = item.price * item.qty;
+    doc.text(`${item.name} x${item.qty}`, 20, y);
+    doc.text(`R${subtotal}`, 160, y);
+    total += subtotal;
+    y += 8;
+  });
+
+  /* ✅ ADDED ORDERS INSERT HERE */
+  await client.from("orders").insert([
+    {
+      order_id: orderId,
+      customer_name: name,
+      phone: phone,
+      items: cart,
+      total: total,
+      status: "pending"
+    }
+  ]);
+
+  y += 10;
+  doc.text(`TOTAL: R${total}`, 20, y);
+
+  doc.save(`${orderId}.pdf`);
+
+  /* UPDATE STOCK */
+  for (const item of cart) {
+    const product = currentProducts.find(p => p.id === item.id);
+    if (!product) continue;
+
+    const newStock = Math.max(0, product.stock - item.qty);
+
+    await client.from("products")
+      .update({ stock: newStock })
+      .eq("id", item.id);
+  }
+
+  /* WHATSAPP */
+  const itemsText = cart.map(i => `- ${i.name} x${i.qty}`).join("\n");
+
+  const message =
+    `🧾 NEW ORDER\n\nInvoice: ${orderId}\nCustomer: ${name}\n\nItems:\n${itemsText}\n\nTotal: R${total}`;
+
+  const url = `https://wa.me/27839946370?text=${encodeURIComponent(message)}`;
+  window.open(url, "_blank");
+
+  cart = [];
+  renderCart();
+  closeCheckout();
+}
+</script>
+
+</body>
+</html>
