@@ -135,13 +135,11 @@
 
 <div class="panel">
 
-  <!-- HEADER BAR -->
   <div class="header-bar">
     <h3>Dashboard</h3>
     <button class="logout-btn" onclick="logout()">Logout</button>
   </div>
 
-  <!-- TABS -->
   <div class="tabs">
     <button class="tab-btn active" onclick="showTab('productsTab', event)">Products</button>
     <button class="tab-btn" onclick="showTab('ordersTab', event)">Orders</button>
@@ -161,7 +159,6 @@
     <button onclick="addProduct()">Add Product</button>
 
     <h3>Products</h3>
-
     <table>
       <thead>
         <tr>
@@ -173,12 +170,10 @@
       </thead>
       <tbody id="productTable"></tbody>
     </table>
-
   </div>
 
   <!-- ORDERS -->
   <div id="ordersTab" class="section">
-
     <h3>Orders</h3>
 
     <table>
@@ -193,49 +188,34 @@
       </thead>
       <tbody id="ordersTable"></tbody>
     </table>
-
   </div>
 
 </div>
 
 <script>
-
-/* 🔐 ADMIN PROTECTION */
-const { data } = await client.auth.getSession();
-
-if (!data.session) {
-  window.location.href = "admin-login.html";
-}
-/* LOGOUT */
-function logout() {
-  sessionStorage.removeItem("admin");
-  window.location.href = "admin-login.html";
-}
-
-/* SUPABASE */
+/* ================= SUPABASE SETUP ================= */
 const SUPABASE_URL = "https://ayfqdhsojxitjkrfmarq.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF5ZnFkaHNvanhpdGprcmZtYXJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNzIzNjUsImV4cCI6MjA5MTg0ODM2NX0.FkoIUlzkjvjYIuZEKKjCc3JDhzdHxmTn9yPat8y0PSg";
+const SUPABASE_KEY = "YOUR_ANON_KEY_HERE";
 
-let client;
+const { createClient } = supabase;
+const client = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-/* INIT */
-function init() {
-  if (!window.supabase) {
-    setTimeout(init, 100);
-    return;
+/* ================= AUTH ================= */
+async function checkAuth() {
+  const { data } = await client.auth.getSession();
+
+  if (!data.session) {
+    window.location.href = "admin-login.html";
   }
+}
+checkAuth();
 
-  client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-  loadProducts();
-  loadOrders();
-  setupOrdersRealtime();
+async function logout() {
+  await client.auth.signOut();
+  window.location.href = "admin-login.html";
 }
 
-init();
-
-/* ---------------- PRODUCTS ---------------- */
-
+/* ================= PRODUCTS ================= */
 async function loadProducts() {
   const { data } = await client.from("products").select("*");
 
@@ -285,8 +265,7 @@ async function deleteProduct(id) {
   loadProducts();
 }
 
-/* ---------------- ORDERS ---------------- */
-
+/* ================= ORDERS ================= */
 async function loadOrders() {
   const { data } = await client
     .from("orders")
@@ -302,7 +281,7 @@ async function loadOrders() {
         <td>${o.order_id}</td>
         <td>${o.customer_name}</td>
         <td>R${o.total}</td>
-        <td><span class="status">${o.status}</span></td>
+        <td>${o.status}</td>
         <td>
           <button class="btn paid" onclick="markPaid('${o.id}')">Paid</button>
           <button class="btn delivered" onclick="markDelivered('${o.id}')">Delivered</button>
@@ -337,19 +316,7 @@ async function deleteOrder(id) {
   loadOrders();
 }
 
-/* REALTIME ORDERS */
-function setupOrdersRealtime() {
-  client
-    .channel("orders")
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "orders" },
-      () => loadOrders()
-    )
-    .subscribe();
-}
-
-/* TAB SWITCH */
+/* ================= UI ================= */
 function showTab(tabId, event) {
   document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
   document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
@@ -358,6 +325,9 @@ function showTab(tabId, event) {
   event.target.classList.add("active");
 }
 
+/* INIT */
+loadProducts();
+loadOrders();
 </script>
 
 </body>
