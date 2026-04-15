@@ -73,9 +73,10 @@
       border-radius: 16px;
       position: sticky;
       top: 20px;
+      height: fit-content;
     }
 
-    /* MOBILE OVERLAY BACKGROUND */
+    /* OVERLAY */
     #overlay {
       display: none;
       position: fixed;
@@ -84,54 +85,7 @@
       z-index: 999;
     }
 
-    /* MOBILE CART */
-    @media (max-width: 768px) {
-
-      .container {
-        flex-direction: column;
-      }
-
-      #products {
-        grid-template-columns: repeat(2, 1fr);
-      }
-
-      #cart {
-        position: fixed;
-        bottom: -100%;
-        left: 0;
-        width: 100%;
-        height: 70%;
-        border-radius: 20px 20px 0 0;
-        transition: 0.3s;
-        z-index: 1000;
-        overflow-y: auto;
-      }
-
-      #cart.open {
-        bottom: 0;
-      }
-
-      #overlay.open {
-        display: block;
-      }
-
-      #mobileCartBtn {
-        display: block;
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        background: #c2b59b;
-        color: white;
-        padding: 14px 18px;
-        border-radius: 30px;
-        z-index: 1100;
-      }
-    }
-
-    #mobileCartBtn {
-      display: none;
-    }
-
+    /* CART HEADER */
     .cart-header {
       display: flex;
       justify-content: space-between;
@@ -139,9 +93,10 @@
     }
 
     .close-btn {
+      display: none; /* hidden by default (desktop) */
       background: none;
       color: black;
-      font-size: 20px;
+      font-size: 22px;
       border: none;
       cursor: pointer;
     }
@@ -152,6 +107,73 @@
       padding: 6px 0;
     }
 
+    #mobileCartBtn {
+      display: none;
+    }
+
+    /* ================= MOBILE ================= */
+    @media (max-width: 768px) {
+
+      .container {
+        flex-direction: column;
+      }
+
+      #products {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      /* CART AS MODAL */
+      #cart {
+        position: fixed;
+        left: 0;
+        bottom: -100%;
+        width: 100%;
+        height: 75%;
+        background: white;
+        border-radius: 20px 20px 0 0;
+        transition: bottom 0.3s ease;
+        z-index: 1000;
+        overflow-y: auto;
+        padding: 20px;
+      }
+
+      #cart.open {
+        bottom: 0;
+      }
+
+      #overlay.open {
+        display: block;
+      }
+
+      /* SHOW CLOSE BUTTON ONLY ON MOBILE */
+      .close-btn {
+        display: block;
+      }
+
+      /* FLOATING CART BUTTON */
+      #mobileCartBtn {
+        display: block;
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: #c2b59b;
+        color: white;
+        padding: 14px 18px;
+        border-radius: 30px;
+        z-index: 1100;
+        font-size: 16px;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+      }
+
+      #cartCount {
+        background: black;
+        color: white;
+        padding: 2px 6px;
+        border-radius: 10px;
+        margin-left: 5px;
+        font-size: 12px;
+      }
+    }
   </style>
 </head>
 
@@ -176,15 +198,17 @@
   </div>
 </div>
 
+<!-- OVERLAY -->
 <div id="overlay" onclick="closeCart()"></div>
 
+<!-- MOBILE BUTTON -->
 <div id="mobileCartBtn" onclick="openCart()">
   🛒 <span id="cartCount">0</span>
 </div>
 
 <script>
 const SUPABASE_URL = "https://ayfqdhsojxitjkrfmarq.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF5ZnFkaHNvanhpdGprcmZtYXJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNzIzNjUsImV4cCI6MjA5MTg0ODM2NX0.FkoIUlzkjvjYIuZEKKjCc3JDhzdHxmTn9yPat8y0PSg";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF5ZnFkaHNvanhpdGprcmZtYXJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNzIzNjUsImV4cCI6MjA5MTg0ODM2NX0.FkoIUlzkjvjYIuZEKKjCc3JDhzdHxmTn9yPat8y0PSg"; // keep yours
 
 let client;
 let cart = [];
@@ -244,7 +268,7 @@ function renderCart() {
   document.getElementById("cartCount").innerText = cart.length;
 }
 
-/* MOBILE UX */
+/* MOBILE CART CONTROL */
 function openCart() {
   document.getElementById("cart").classList.add("open");
   document.getElementById("overlay").classList.add("open");
