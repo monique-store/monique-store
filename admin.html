@@ -25,6 +25,22 @@
       border-radius: 12px;
     }
 
+    .header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .logout-btn {
+      background: #e74c3c;
+      border: none;
+      color: white;
+      padding: 8px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
     .tabs {
       display: flex;
       gap: 10px;
@@ -58,6 +74,7 @@
       margin: 5px 0;
       border-radius: 8px;
       border: 1px solid #ccc;
+      box-sizing: border-box;
     }
 
     button {
@@ -87,6 +104,7 @@
       padding: 6px 10px;
       color: white;
       border-radius: 6px;
+      cursor: pointer;
     }
 
     .btn {
@@ -117,10 +135,16 @@
 
 <div class="panel">
 
+  <!-- HEADER BAR -->
+  <div class="header-bar">
+    <h3>Dashboard</h3>
+    <button class="logout-btn" onclick="logout()">Logout</button>
+  </div>
+
   <!-- TABS -->
   <div class="tabs">
-    <button class="tab-btn active" onclick="showTab('productsTab')">Products</button>
-    <button class="tab-btn" onclick="showTab('ordersTab')">Orders</button>
+    <button class="tab-btn active" onclick="showTab('productsTab', event)">Products</button>
+    <button class="tab-btn" onclick="showTab('ordersTab', event)">Orders</button>
   </div>
 
   <!-- PRODUCTS -->
@@ -175,6 +199,20 @@
 </div>
 
 <script>
+
+/* 🔐 ADMIN PROTECTION */
+const { data } = await client.auth.getSession();
+
+if (!data.session) {
+  window.location.href = "admin-login.html";
+}
+/* LOGOUT */
+function logout() {
+  sessionStorage.removeItem("admin");
+  window.location.href = "admin-login.html";
+}
+
+/* SUPABASE */
 const SUPABASE_URL = "https://ayfqdhsojxitjkrfmarq.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF5ZnFkaHNvanhpdGprcmZtYXJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNzIzNjUsImV4cCI6MjA5MTg0ODM2NX0.FkoIUlzkjvjYIuZEKKjCc3JDhzdHxmTn9yPat8y0PSg";
 
@@ -312,13 +350,14 @@ function setupOrdersRealtime() {
 }
 
 /* TAB SWITCH */
-function showTab(tabId) {
+function showTab(tabId, event) {
   document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
   document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
 
   document.getElementById(tabId).classList.add("active");
   event.target.classList.add("active");
 }
+
 </script>
 
 </body>
