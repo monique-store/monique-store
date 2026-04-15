@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Admin Login - Monique's Store</title>
+  <title>Admin Login</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
     body {
@@ -11,20 +12,13 @@
       justify-content: center;
       align-items: center;
       height: 100vh;
-      margin: 0;
     }
 
-    .login-box {
+    .box {
       background: white;
       padding: 25px;
       border-radius: 12px;
       width: 320px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-    }
-
-    h2 {
-      text-align: center;
-      margin-bottom: 20px;
     }
 
     input {
@@ -39,52 +33,54 @@
     button {
       width: 100%;
       padding: 12px;
-      border: none;
-      border-radius: 10px;
       background: #c2b59b;
+      border: none;
       color: white;
-      cursor: pointer;
-      margin-top: 10px;
-    }
-
-    button:hover {
-      opacity: 0.9;
+      border-radius: 10px;
     }
 
     .error {
       color: red;
       font-size: 13px;
-      text-align: center;
-      margin-top: 10px;
       display: none;
+      text-align: center;
     }
   </style>
 </head>
 
 <body>
 
-<div class="login-box">
+<div class="box">
   <h2>Admin Login</h2>
 
-  <input id="password" type="password" placeholder="Enter Password">
-
+  <input type="password" id="password" placeholder="Enter password">
   <button onclick="login()">Login</button>
 
-  <div class="error" id="error">Wrong password</div>
+  <p class="error" id="error">Wrong password</p>
 </div>
 
 <script>
-const ADMIN_PASSWORD = "MoniqueAdmin098765@";
+const SUPABASE_URL = "https://ayfqdhsojxitjkrfmarq.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF5ZnFkaHNvanhpdGprcmZtYXJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNzIzNjUsImV4cCI6MjA5MTg0ODM2NX0.FkoIUlzkjvjYIuZEKKjCc3JDhzdHxmTn9yPat8y0PSg";
+const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-function login() {
-  const pass = document.getElementById("password").value;
+// fixed admin email (hidden from UI)
+const ADMIN_EMAIL = "admin@monique.store";
 
-  if (pass === ADMIN_PASSWORD) {
-    sessionStorage.setItem("admin", "true");
-    window.location.href = "admin.html"; // change if your file name differs
-  } else {
+async function login() {
+  const password = document.getElementById("password").value;
+
+  const { data, error } = await client.auth.signInWithPassword({
+    email: ADMIN_EMAIL,
+    password: password
+  });
+
+  if (error) {
     document.getElementById("error").style.display = "block";
+    return;
   }
+
+  window.location.href = "admin.html";
 }
 </script>
 
