@@ -13,9 +13,7 @@
       padding: 20px;
     }
 
-    h1 {
-      text-align: center;
-    }
+    h1 { text-align: center; }
 
     .panel {
       max-width: 1000px;
@@ -60,13 +58,8 @@
       color: white;
     }
 
-    .section {
-      display: none;
-    }
-
-    .section.active {
-      display: block;
-    }
+    .section { display: none; }
+    .section.active { display: block; }
 
     input {
       width: 100%;
@@ -193,12 +186,19 @@
 </div>
 
 <script>
-/* ================= SUPABASE SETUP ================= */
+/* ================= SUPABASE ================= */
 const SUPABASE_URL = "https://ayfqdhsojxitjkrfmarq.supabase.co";
-const SUPABASE_KEY = "YOUR_ANON_KEY_HERE";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF5ZnFkaHNvanhpdGprcmZtYXJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNzIzNjUsImV4cCI6MjA5MTg0ODM2NX0.FkoIUlzkjvjYIuZEKKjCc3JDhzdHxmTn9yPat8y0PSg";
 
 const { createClient } = supabase;
 const client = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+/* ================= INIT SAFE ================= */
+document.addEventListener("DOMContentLoaded", async () => {
+  await checkAuth();
+  loadProducts();
+  loadOrders();
+});
 
 /* ================= AUTH ================= */
 async function checkAuth() {
@@ -208,7 +208,6 @@ async function checkAuth() {
     window.location.href = "admin-login.html";
   }
 }
-checkAuth();
 
 async function logout() {
   await client.auth.signOut();
@@ -240,12 +239,18 @@ async function loadProducts() {
 }
 
 async function addProduct() {
+  const name = document.getElementById("name").value;
+  const price = document.getElementById("price").value;
+  const stock = document.getElementById("stock").value;
+  const image = document.getElementById("image").value;
+  const desc = document.getElementById("desc").value;
+
   await client.from("products").insert([{
-    name: name.value,
-    price: parseFloat(price.value),
-    stock: parseInt(stock.value),
-    image_url: image.value,
-    description: desc.value
+    name,
+    price: parseFloat(price),
+    stock: parseInt(stock),
+    image_url: image,
+    description: desc
   }]);
 
   loadProducts();
@@ -324,10 +329,6 @@ function showTab(tabId, event) {
   document.getElementById(tabId).classList.add("active");
   event.target.classList.add("active");
 }
-
-/* INIT */
-loadProducts();
-loadOrders();
 </script>
 
 </body>
