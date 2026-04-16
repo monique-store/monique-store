@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
   <style>
     body {
@@ -39,6 +40,8 @@
       border-radius: 18px;
       overflow: hidden;
       box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+      display: flex;
+      flex-direction: column;
     }
 
     .product img {
@@ -51,6 +54,9 @@
 
     .product-content {
       padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
     }
 
     .price { font-weight: bold; }
@@ -62,10 +68,9 @@
       padding: 10px;
       border-radius: 10px;
       cursor: pointer;
-      width: 100%;
     }
 
-    /* ================= DESKTOP CART ================= */
+    /* CART */
     #cart {
       flex: 1;
       background: white;
@@ -95,47 +100,49 @@
     .close-btn {
       display: none;
       background: none;
-      color: black;
       font-size: 22px;
       border: none;
       cursor: pointer;
     }
 
     .cart-item {
-      display: flex;
-      justify-content: space-between;
-      padding: 6px 0;
+      display: grid;
+      grid-template-columns: 2fr 1fr auto;
+      gap: 10px;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid #eee;
     }
 
-    /* HIDE MOBILE BUTTON ON DESKTOP */
-    #mobileCartBtn {
-      display: none;
+    .cart-remove {
+      background: transparent;
+      border: none;
+      color: #b33;
+      font-weight: bold;
+      cursor: pointer;
     }
 
-    /* ================= MOBILE ================= */
+    #mobileCartBtn { display: none; }
+
+    /* MOBILE */
     @media (max-width: 768px) {
 
-      .container {
-        flex-direction: column;
-      }
+      .container { flex-direction: column; }
 
       #products {
         grid-template-columns: repeat(2, 1fr);
       }
 
-      /* 🚀 TRUE OVERLAY CART */
       #cart {
         position: fixed !important;
         left: 0;
         bottom: 0;
         width: 100%;
         height: 75%;
-        background: white;
         border-radius: 20px 20px 0 0;
         z-index: 1000;
         overflow-y: auto;
 
-        /* 🔥 FIX */
         transform: translateY(100%);
         transition: transform 0.3s ease;
 
@@ -150,12 +157,8 @@
         display: block;
       }
 
-      /* SHOW CLOSE BUTTON ONLY ON MOBILE */
-      .close-btn {
-        display: block;
-      }
+      .close-btn { display: block; }
 
-      /* FLOATING BUTTON */
       #mobileCartBtn {
         display: block;
         position: fixed;
@@ -166,7 +169,6 @@
         padding: 14px 18px;
         border-radius: 30px;
         z-index: 1100;
-        box-shadow: 0 8px 20px rgba(0,0,0,0.2);
       }
 
       #cartCount {
@@ -198,16 +200,24 @@
 
     <h4>Total: <span id="cartTotal">R0.00</span></h4>
 
-    <button onclick="placeOrder()">Checkout</button>
+    <button onclick="openCheckout()">Checkout</button>
   </div>
 </div>
 
-<!-- OVERLAY -->
 <div id="overlay" onclick="closeCart()"></div>
 
-<!-- MOBILE BUTTON -->
 <div id="mobileCartBtn" onclick="openCart()">
   🛒 <span id="cartCount">0</span>
+</div>
+
+<!-- CHECKOUT MODAL -->
+<div class="modal" id="checkoutModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); align-items:center; justify-content:center;">
+  <div style="background:white; padding:20px; border-radius:12px;">
+    <input id="custName" placeholder="Your Name"><br><br>
+    <input id="custPhone" placeholder="Phone"><br><br>
+    <button onclick="placeOrder()">Place Order</button>
+    <button onclick="closeCheckout()">Cancel</button>
+  </div>
 </div>
 
 <script>
@@ -216,6 +226,7 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 
 let client;
 let cart = [];
+let currentProducts = [];
 
 function init() {
   if (!window.supabase) return setTimeout(init, 100);
@@ -224,10 +235,12 @@ function init() {
 }
 init();
 
+/* LOAD */
 async function loadProducts() {
   const { data } = await client.from("products").select("*");
-  const container = document.getElementById("products");
+  currentProducts = data;
 
+  const container = document.getElementById("products");
   container.innerHTML = "";
 
   data.forEach(p => {
@@ -237,22 +250,44 @@ async function loadProducts() {
         <div class="product-content">
           <h3>${p.name}</h3>
           <div class="price">R${p.price}</div>
-          <button onclick="addToCart('${p.id}','${p.name}',${p.price})">
-            Add to Cart
+          <button onclick="addToCart('${p.id}','${p.name}',${p.price})"
+            ${p.stock <= 0 ? "disabled" : ""}>
+            ${p.stock > 0 ? "Add to Cart" : "Out of Stock"}
           </button>
         </div>
       </div>`;
   });
 }
 
+/* ADD */
 function addToCart(id, name, price) {
-  const item = cart.find(i => i.id === id);
-  if (item) item.qty++;
-  else cart.push({ id, name, price, qty: 1 });
+  const product = currentProducts.find(p => p.id === id);
+  if (!product || product.stock <= 0) return alert("Out of stock");
+
+  const existing = cart.find(i => i.id === id);
+
+  if (existing) {
+    if (existing.qty >= product.stock) return alert("No more stock");
+    existing.qty++;
+  } else {
+    cart.push({ id, name, price, qty: 1 });
+  }
 
   renderCart();
 }
 
+/* REMOVE */
+function removeFromCart(id) {
+  const index = cart.findIndex(i => i.id === id);
+  if (index === -1) return;
+
+  if (cart[index].qty > 1) cart[index].qty--;
+  else cart.splice(index, 1);
+
+  renderCart();
+}
+
+/* RENDER */
 function renderCart() {
   const container = document.getElementById("cartItems");
   let total = 0;
@@ -260,11 +295,14 @@ function renderCart() {
   container.innerHTML = "";
 
   cart.forEach(i => {
-    total += i.price * i.qty;
+    const sub = i.price * i.qty;
+    total += sub;
+
     container.innerHTML += `
       <div class="cart-item">
         <span>${i.name} x${i.qty}</span>
-        <span>R${(i.price * i.qty).toFixed(2)}</span>
+        <span>R${sub.toFixed(2)}</span>
+        <button class="cart-remove" onclick="removeFromCart('${i.id}')">✕</button>
       </div>`;
   });
 
@@ -272,21 +310,63 @@ function renderCart() {
   document.getElementById("cartCount").innerText = cart.length;
 }
 
-/* MOBILE CART CONTROL */
+/* CHECKOUT */
+function openCheckout() {
+  if (cart.length === 0) return alert("Cart empty");
+  document.getElementById("checkoutModal").style.display = "flex";
+}
+
+function closeCheckout() {
+  document.getElementById("checkoutModal").style.display = "none";
+}
+
+/* MOBILE */
 function openCart() {
-  document.getElementById("cart").classList.add("open");
-  document.getElementById("overlay").classList.add("open");
+  cartEl = document.getElementById("cart");
+  overlay = document.getElementById("overlay");
+  cartEl.classList.add("open");
+  overlay.classList.add("open");
 }
 
 function closeCart() {
-  document.getElementById("cart").classList.remove("open");
-  document.getElementById("overlay").classList.remove("open");
+  cartEl = document.getElementById("cart");
+  overlay = document.getElementById("overlay");
+  cartEl.classList.remove("open");
+  overlay.classList.remove("open");
 }
 
+/* PLACE ORDER */
 async function placeOrder() {
-  alert("Order placed!");
+  const name = custName.value;
+  const phone = custPhone.value;
+  if (!name || !phone) return alert("Enter details");
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  const orderId = "INV-" + Math.floor(Math.random() * 1000000);
+  let total = 0;
+  let y = 20;
+
+  doc.text("MONIQUE'S STORE", 20, y);
+
+  cart.forEach(i => {
+    const sub = i.price * i.qty;
+    total += sub;
+    doc.text(`${i.name} x${i.qty} - R${sub}`, 20, y += 10);
+  });
+
+  doc.text(`TOTAL: R${total}`, 20, y += 10);
+  doc.save(orderId + ".pdf");
+
+  await client.from("orders").insert([{ order_id: orderId, customer_name: name, phone, items: cart, total }]);
+
+  const msg = `New Order ${orderId}\n${cart.map(i => i.name+" x"+i.qty).join("\n")}\nTotal: R${total}`;
+  window.open(`https://wa.me/27839946370?text=${encodeURIComponent(msg)}`);
+
   cart = [];
   renderCart();
+  closeCheckout();
   closeCart();
 }
 </script>
