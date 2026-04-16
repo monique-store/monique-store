@@ -211,12 +211,20 @@
 </div>
 
 <!-- CHECKOUT MODAL -->
-<div class="modal" id="checkoutModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); align-items:center; justify-content:center;">
-  <div style="background:white; padding:20px; border-radius:12px;">
-    <input id="custName" placeholder="Your Name"><br><br>
-    <input id="custPhone" placeholder="Phone"><br><br>
-    <button onclick="placeOrder()">Place Order</button>
-    <button onclick="closeCheckout()">Cancel</button>
+<div class="modal" id="checkoutModal">
+  <div class="modal-content">
+    <h3 style="margin-bottom:10px;">Checkout</h3>
+
+    <input id="custName" placeholder="Full Name" />
+    <input id="custPhone" placeholder="Phone Number" />
+
+    <button onclick="placeOrder()" class="primary-btn">
+      Confirm Order
+    </button>
+
+    <button onclick="closeCheckout()" class="secondary-btn">
+      Cancel
+    </button>
   </div>
 </div>
 
