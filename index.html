@@ -3,7 +3,6 @@
 <head>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&display=swap" rel="stylesheet">
 
-  <!-- ✅ MOBILE FIX -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -14,7 +13,6 @@
       font-family: Inter, Arial;
       background: #f7f3ea;
       margin: 0;
-      padding: 0;
     }
 
     header {
@@ -32,7 +30,6 @@
       padding: 20px;
     }
 
-    /* DESKTOP PRODUCTS */
     #products {
       flex: 3;
       display: grid;
@@ -45,8 +42,6 @@
       border-radius: 18px;
       overflow: hidden;
       box-shadow: 0 8px 24px rgba(0,0,0,0.06);
-      display: flex;
-      flex-direction: column;
     }
 
     .product img {
@@ -59,25 +54,19 @@
 
     .product-content {
       padding: 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .price {
-      font-weight: 700;
     }
 
     button {
       background: #c2b59b;
       color: white;
       border: none;
-      padding: 11px;
-      border-radius: 12px;
+      padding: 10px;
+      border-radius: 10px;
       cursor: pointer;
+      width: 100%;
     }
 
-    /* DESKTOP CART */
+    /* CART */
     #cart {
       flex: 1;
       background: white;
@@ -85,52 +74,53 @@
       border-radius: 16px;
       position: sticky;
       top: 20px;
-      height: fit-content;
     }
 
     .cart-item {
       display: grid;
       grid-template-columns: 2fr 1fr auto;
       gap: 10px;
-      align-items: center;
-      padding: 8px 0;
-      border-bottom: 1px solid #eee;
-      font-size: 14px;
+      padding: 6px 0;
     }
 
     .cart-remove {
-      background: transparent;
+      background: none;
+      color: red;
       border: none;
-      color: #b33;
-      font-weight: bold;
       cursor: pointer;
     }
 
-    .cart-total {
+    /* OVERLAY */
+    #overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 999;
+    }
+
+    .cart-header {
       display: flex;
       justify-content: space-between;
-      margin-top: 12px;
-      font-weight: bold;
     }
 
-    .badge {
-      font-size: 11px;
-      background: #e7dfcf;
-      padding: 4px 8px;
-      border-radius: 20px;
+    .close-btn {
+      display: none;
+      background: none;
+      font-size: 20px;
+      border: none;
+      cursor: pointer;
     }
 
-    /* MODAL */
+    /* CHECKOUT MODAL */
     .modal {
       display: none;
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
+      inset: 0;
       background: rgba(0,0,0,0.5);
       justify-content: center;
       align-items: center;
+      z-index: 2000;
     }
 
     .modal-content {
@@ -149,67 +139,54 @@
       border: 1px solid #ccc;
     }
 
-    /* HIDE MOBILE BUTTON ON DESKTOP */
     #mobileCartBtn {
       display: none;
     }
 
-    /* ================= MOBILE ONLY ================= */
+    /* MOBILE */
     @media (max-width: 768px) {
 
       .container {
         flex-direction: column;
-        padding: 10px;
       }
 
       #products {
         grid-template-columns: repeat(2, 1fr);
-        gap: 12px;
       }
 
-      .product img {
-        height: 160px;
-      }
-
-      /* MOBILE CART (OVERLAY) */
       #cart {
-        position: fixed;
-        bottom: -100%;
+        position: fixed !important;
         left: 0;
+        bottom: 0;
         width: 100%;
-        height: 60%;
-        border-radius: 20px 20px 0 0;
-        transition: 0.3s;
+        height: 75%;
+        transform: translateY(100%);
+        transition: transform 0.3s ease;
         z-index: 1000;
       }
 
       #cart.open {
-        bottom: 0;
+        transform: translateY(0);
       }
 
-      /* FLOATING BUTTON */
+      #overlay.open {
+        display: block;
+      }
+
+      .close-btn {
+        display: block;
+      }
+
       #mobileCartBtn {
         display: block;
         position: fixed;
         bottom: 20px;
         right: 20px;
+        padding: 14px;
+        border-radius: 30px;
         background: #c2b59b;
         color: white;
-        padding: 14px 18px;
-        border-radius: 30px;
-        font-size: 16px;
-        box-shadow: 0 8px 20px rgba(0,0,0,0.2);
         z-index: 1100;
-        cursor: pointer;
-      }
-
-      #cartCount {
-        background: black;
-        color: white;
-        padding: 2px 6px;
-        border-radius: 10px;
-        margin-left: 5px;
-        font-size: 12px;
       }
     }
   </style>
@@ -223,29 +200,28 @@
   <div id="products">Loading...</div>
 
   <div id="cart">
-    <h3>Cart</h3>
-    <div id="cartItems"></div>
-
-    <div class="cart-total">
-      <span>Total</span>
-      <span id="cartTotal">R0.00</span>
+    <div class="cart-header">
+      <h3>Cart</h3>
+      <button class="close-btn" onclick="closeCart()">✕</button>
     </div>
 
-    <button onclick="openCheckout()" style="width:100%">Checkout</button>
+    <div id="cartItems"></div>
+    <h4>Total: <span id="cartTotal">R0.00</span></h4>
+
+    <button onclick="openCheckout()">Checkout</button>
   </div>
 </div>
 
-<!-- MOBILE CART BUTTON -->
-<div id="mobileCartBtn" onclick="toggleCart()">
-  🛒 <span id="cartCount">0</span>
-</div>
+<div id="overlay" onclick="closeCart()"></div>
+
+<div id="mobileCartBtn" onclick="openCart()">🛒 <span id="cartCount">0</span></div>
 
 <!-- CHECKOUT -->
 <div class="modal" id="checkoutModal">
   <div class="modal-content">
     <h3>Checkout</h3>
-    <input id="custName" placeholder="Your Name" />
-    <input id="custPhone" placeholder="Phone Number" />
+    <input id="custName" placeholder="Your Name">
+    <input id="custPhone" placeholder="Phone Number">
     <button onclick="placeOrder()">Place Order</button>
     <button onclick="closeCheckout()" style="background:#999;">Cancel</button>
   </div>
@@ -259,42 +235,48 @@ let client;
 let cart = [];
 let currentProducts = [];
 
-function initSupabase() {
-  if (!window.supabase) return setTimeout(initSupabase, 100);
-  client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+function init() {
+  if (!window.supabase) return setTimeout(init, 100);
+  client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
   loadProducts();
 }
-initSupabase();
+init();
 
 async function loadProducts() {
   const { data } = await client.from("products").select("*");
+  currentProducts = data;
+
   const container = document.getElementById("products");
   container.innerHTML = "";
-
-  currentProducts = data;
 
   data.forEach(p => {
     container.innerHTML += `
       <div class="product">
-        <img src="${p.image_url}" />
+        <img src="${p.image_url}">
         <div class="product-content">
-          <span class="badge">${p.stock > 0 ? "In Stock" : "Out of Stock"}</span>
           <h3>${p.name}</h3>
-          <div class="price">R${p.price}</div>
-          <p>${p.description}</p>
+          <p>R${p.price}</p>
           <button onclick="addToCart('${p.id}','${p.name}',${p.price})"
-            ${p.stock <= 0 ? "disabled" : ""}>
-            Add to Cart
-          </button>
+          ${p.stock <= 0 ? "disabled" : ""}>
+          Add to Cart</button>
         </div>
       </div>`;
   });
 }
 
 function addToCart(id, name, price) {
+  const product = currentProducts.find(p => p.id === id);
+  if (!product || product.stock <= 0) return alert("Out of stock");
+
   const existing = cart.find(i => i.id === id);
-  if (existing) existing.qty++;
-  else cart.push({ id, name, price, qty: 1 });
+
+  if (existing) {
+    if (existing.qty >= product.stock) return alert("No more stock");
+    existing.qty++;
+  } else {
+    cart.push({ id, name, price, qty: 1 });
+  }
+
   renderCart();
 }
 
@@ -304,19 +286,19 @@ function removeFromCart(id) {
 }
 
 function renderCart() {
-  const container = document.getElementById("cartItems");
   let total = 0;
+  const container = document.getElementById("cartItems");
   container.innerHTML = "";
 
-  cart.forEach(item => {
-    const subtotal = item.price * item.qty;
-    total += subtotal;
+  cart.forEach(i => {
+    const sub = i.price * i.qty;
+    total += sub;
 
     container.innerHTML += `
       <div class="cart-item">
-        <span>${item.name} x${item.qty}</span>
-        <span>R${subtotal.toFixed(2)}</span>
-        <button onclick="removeFromCart('${item.id}')">✕</button>
+        <span>${i.name} x${i.qty}</span>
+        <span>R${sub.toFixed(2)}</span>
+        <button class="cart-remove" onclick="removeFromCart('${i.id}')">✕</button>
       </div>`;
   });
 
@@ -324,12 +306,9 @@ function renderCart() {
   document.getElementById("cartCount").innerText = cart.length;
 }
 
-function toggleCart() {
-  document.getElementById("cart").classList.toggle("open");
-}
-
+/* CHECKOUT */
 function openCheckout() {
-  if (cart.length === 0) return alert("Cart is empty");
+  if (!cart.length) return alert("Cart empty");
   document.getElementById("checkoutModal").style.display = "flex";
 }
 
@@ -337,17 +316,76 @@ function closeCheckout() {
   document.getElementById("checkoutModal").style.display = "none";
 }
 
+/* MOBILE */
+function openCart() {
+  document.getElementById("cart").classList.add("open");
+  document.getElementById("overlay").classList.add("open");
+}
+function closeCart() {
+  document.getElementById("cart").classList.remove("open");
+  document.getElementById("overlay").classList.remove("open");
+}
+
+/* FINAL PLACE ORDER (YOUR VERSION) */
 async function placeOrder() {
   const name = custName.value;
   const phone = custPhone.value;
-
   if (!name || !phone) return alert("Enter details");
 
-  let total = 0;
-  cart.forEach(i => total += i.price * i.qty);
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  const orderId = "INV-" + Math.floor(Math.random() * 1000000);
+  const date = new Date().toLocaleString();
+
+  let y = 20;
+
+  doc.setFont("helvetica","bold");
+  doc.setFontSize(18);
+  doc.text("MONIQUE'S STORE",14,y);
+
+  doc.setFontSize(10);
+  doc.setFont("helvetica","normal");
+  doc.text(`Invoice: ${orderId}`,140,y);
+  doc.text(`Date: ${date}`,140,y+6);
+
+  y+=15;
+  doc.text(`Customer: ${name}`,14,y);
+  doc.text(`Phone: ${phone}`,14,y+6);
+
+  y+=12;
+  doc.setFont("helvetica","bold");
+  doc.text("Item",14,y);
+  doc.text("Qty",110,y);
+  doc.text("Price",140,y);
+  doc.text("Total",170,y);
+
+  y+=4;
+  doc.line(14,y,195,y);
+  y+=6;
+
+  doc.setFont("helvetica","normal");
+
+  let total=0;
+  cart.forEach(item=>{
+    const sub=item.price*item.qty;
+    doc.text(item.name,14,y);
+    doc.text(String(item.qty),110,y);
+    doc.text(`R${item.price}`,140,y);
+    doc.text(`R${sub}`,170,y);
+    total+=sub;
+    y+=8;
+  });
+
+  y+=5;
+  doc.line(14,y,195,y);
+  y+=8;
+
+  doc.setFont("helvetica","bold");
+  doc.text(`TOTAL: R${total.toFixed(2)}`,14,y);
 
   await client.from("orders").insert([{
-    order_id: "INV-" + Date.now(),
+    order_id: orderId,
     customer_name: name,
     phone: phone,
     items: cart,
@@ -355,10 +393,30 @@ async function placeOrder() {
     status: "pending"
   }]);
 
-  alert("Order placed!");
-  cart = [];
+  doc.save(`${orderId}.pdf`);
+
+  const itemsText = cart.map(i=>`• ${i.name} (R${i.price})`).join("\n");
+
+  const message =
+`📦 NEW ORDER RECEIVED
+
+Invoice: ${orderId}
+Customer: ${name}
+Phone: ${phone}
+
+Items:
+${itemsText}
+
+Total: R${total.toFixed(2)}
+
+📄 Invoice has been downloaded by customer`;
+
+  window.open(`https://wa.me/27839946370?text=${encodeURIComponent(message)}`);
+
+  cart=[];
   renderCart();
   closeCheckout();
+  closeCart();
 }
 </script>
 
