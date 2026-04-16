@@ -345,37 +345,124 @@ function closeCart() {
 
 /* PLACE ORDER */
 async function placeOrder() {
-  const name = custName.value;
-  const phone = custPhone.value;
+  const name = document.getElementById("custName").value;
+  const phone = document.getElementById("custPhone").value;
+
   if (!name || !phone) return alert("Enter details");
 
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
 
   const orderId = "INV-" + Math.floor(Math.random() * 1000000);
-  let total = 0;
+  const date = new Date().toLocaleString();
+
   let y = 20;
 
-  doc.text("MONIQUE'S STORE", 20, y);
+  /* HEADER */
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(18);
+  doc.text("MONIQUE'S STORE", 14, y);
 
-  cart.forEach(i => {
-    const sub = i.price * i.qty;
-    total += sub;
-    doc.text(`${i.name} x${i.qty} - R${sub}`, 20, y += 10);
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  doc.text(`Invoice: ${orderId}`, 140, y);
+  doc.text(`Date: ${date}`, 140, y + 6);
+
+  y += 15;
+
+  doc.text(`Customer: ${name}`, 14, y);
+  doc.text(`Phone: ${phone}`, 14, y + 6);
+
+  y += 12;
+
+  /* TABLE HEADER */
+  doc.setFont("helvetica", "bold");
+  doc.text("Item", 14, y);
+  doc.text("Qty", 110, y);
+  doc.text("Price", 140, y);
+  doc.text("Total", 170, y);
+
+  y += 4;
+  doc.line(14, y, 195, y);
+
+  y += 6;
+
+  /* TABLE CONTENT */
+  doc.setFont("helvetica", "normal");
+
+  let total = 0;
+
+  cart.forEach(item => {
+    const subtotal = item.price * item.qty;
+
+    doc.text(item.name, 14, y);
+    doc.text(String(item.qty), 110, y);
+    doc.text(`R${item.price}`, 140, y);
+    doc.text(`R${subtotal}`, 170, y);
+
+    total += subtotal;
+    y += 8;
   });
 
-  doc.text(`TOTAL: R${total}`, 20, y += 10);
-  doc.save(orderId + ".pdf");
+  y += 5;
+  doc.line(14, y, 195, y);
 
-  await client.from("orders").insert([{ order_id: orderId, customer_name: name, phone, items: cart, total }]);
+  y += 8;
 
-  const msg = `New Order ${orderId}\n${cart.map(i => i.name+" x"+i.qty).join("\n")}\nTotal: R${total}`;
-  window.open(`https://wa.me/27839946370?text=${encodeURIComponent(msg)}`);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
+  doc.text(`TOTAL: R${total.toFixed(2)}`, 14, y);
+
+  /* SAVE ORDER */
+  await client.from("orders").insert([{
+    order_id: orderId,
+    customer_name: name,
+    phone: phone,
+    items: cart,
+    total: total,
+    status: "pending"
+  }]);
+
+  doc.save(`${orderId}.pdf`);
+
+  /* UPDATE STOCK */
+  for (const item of cart) {
+    const product = currentProducts.find(p => p.id === item.id);
+    if (!product) continue;
+
+    const newStock = Math.max(0, product.stock - item.qty);
+
+    await client.from("products")
+      .update({ stock: newStock })
+      .eq("id", item.id);
+  }
+
+  /* WHATSAPP MESSAGE (YOUR FORMAT) */
+  const itemsText = cart
+    .map(i => `• ${i.name} (R${i.price})`)
+    .join("\n");
+
+  const message =
+`📦 NEW ORDER RECEIVED
+
+Invoice: ${orderId}
+Customer: ${name}
+Phone: ${phone}
+
+Items:
+${itemsText}
+
+Total: R${total.toFixed(2)}
+
+📄 Invoice has been downloaded by customer`;
+
+  const url = `https://wa.me/27839946370?text=${encodeURIComponent(message)}`;
+  window.open(url, "_blank");
 
   cart = [];
   renderCart();
   closeCheckout();
-  closeCart();
+  closeCart(); // mobile support
 }
 </script>
 
