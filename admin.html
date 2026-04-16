@@ -2,7 +2,13 @@
 <html>
 <head>
   <title>Admin - Monique's Store</title>
+<script>
+  const loggedIn = localStorage.getItem("adminLoggedIn");
 
+  if (!loggedIn) {
+    window.location.replace("/login.html");
+  }
+</script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
